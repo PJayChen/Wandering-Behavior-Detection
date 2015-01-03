@@ -31,8 +31,9 @@ public class SQLite extends SQLiteOpenHelper{
         String DATABASE_CREATE_TABLE =
                 "create table fix ("
                 + "_ID INTEGER PRIMARY KEY,"
-                + "name TEXT,"
-                + "value INTEGER"
+                + "time TEXT,"
+                + "latitude TEXT,"
+                + "longitude TEXT"
                 + ");";
         db.execSQL(DATABASE_CREATE_TABLE);
 
@@ -53,8 +54,8 @@ public class SQLite extends SQLiteOpenHelper{
     //Get one data
     public Cursor get(long rowId)throws SQLException{
         Cursor cursor = db.query(true,
-                "table_name",
-                new String[]{"_ID", "name", "value"},
+                "fix",
+                new String[]{"_ID", "time", "latitude", "longitude"},
                 "_ID=" + rowId,
                 null,
                 null,
@@ -70,32 +71,33 @@ public class SQLite extends SQLiteOpenHelper{
     }
 
     //新增一筆記錄，成功回傳rowID，失敗回傳-1
-    public long create(String name, String value) {
+    public long create(String time, String latitude, String longitude) {
         ContentValues args = new ContentValues();
-        args.put("name", name);
-        args.put("value", value);
+        args.put("time", time);
+        args.put("latitude", latitude);
+        args.put("longitude", longitude);
 
        // Toast.makeText(m_context, "Add" + name + " " + value, Toast.LENGTH_SHORT).show();
         return db.insert("fix", null, args);
     }
 
-    //刪除記錄，回傳成功刪除筆數
-    public int delete(long rowId) {
-        return db.delete("fix",	//資料表名稱
-                "_ID=" + rowId,			//WHERE
-                null				//WHERE的參數
-        );
-    }
+//    //刪除記錄，回傳成功刪除筆數
+//    public int delete(long rowId) {
+//        return db.delete("fix",	//資料表名稱
+//                "_ID=" + rowId,			//WHERE
+//                null				//WHERE的參數
+//        );
+//    }
 
-    //修改記錄，回傳成功修改筆數
-    public int update(long rowId, String value) {
-        ContentValues args = new ContentValues();
-        args.put("value", value);
-
-        return db.update("fix",	//資料表名稱
-                args,				//VALUE
-                "_ID=" + rowId,			//WHERE
-                null				//WHERE的參數
-        );
-    }
+//    //修改記錄，回傳成功修改筆數
+//    public int update(long rowId, String value) {
+//        ContentValues args = new ContentValues();
+//        args.put("value", value);
+//
+//        return db.update("fix",	//資料表名稱
+//                args,				//VALUE
+//                "_ID=" + rowId,			//WHERE
+//                null				//WHERE的參數
+//        );
+//    }
 }

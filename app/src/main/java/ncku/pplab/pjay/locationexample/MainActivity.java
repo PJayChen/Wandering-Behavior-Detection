@@ -59,21 +59,22 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
                     + "(" + rightNow.getTime().toString() + ")");
 
             //Save position fix in the SQLite database
-            dbHelper.create(ElapseFromBootInSec, laStr + "," + loStr);
+            dbHelper.create(ElapseFromBootInSec, laStr, loStr);
 
-//           Cursor cursor = dbHelper.getAll();
-//            int rows_num = cursor.getCount();
-//            if(rows_num != 0) {
-//                cursor.moveToFirst();			//將指標移至第一筆資料
-//                for(int i=0; i<rows_num; i++) {
-//                    int id = cursor.getInt(0);	//取得第0欄的資料，根據欄位type使用適當語法
-//                    String name = cursor.getString(1);
-//                    int value = cursor.getInt(2);
-//                    Toast.makeText(this, name + " " + Integer.valueOf(name), Toast.LENGTH_SHORT).show();
-//                    cursor.moveToNext();		//將指標移至下一筆資料
-//                }
-//            }
-//            cursor.close();
+           Cursor cursor = dbHelper.getAll();
+            int rows_num = cursor.getCount();
+            if(rows_num != 0) {
+                cursor.moveToFirst();			//將指標移至第一筆資料
+                for(int i=0; i<rows_num; i++) {
+                    int id = cursor.getInt(0);	//取得第0欄的資料，根據欄位type使用適當語法
+                    String time = cursor.getString(1);
+                    String latitude = cursor.getString(2);
+                    String longitude = cursor.getString(3);
+                    Toast.makeText(this, time + " " + latitude + ", " + longitude, Toast.LENGTH_SHORT).show();
+                    cursor.moveToNext();		//將指標移至下一筆資料
+                }
+            }
+            cursor.close();
         }
     }
 
