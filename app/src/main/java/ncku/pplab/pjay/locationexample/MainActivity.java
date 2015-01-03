@@ -1,6 +1,7 @@
 package ncku.pplab.pjay.locationexample;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -20,7 +21,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
     private TextView longitudeText;
     private TextView timeText;
     private boolean getService = false;
-
+    private SQLite dbHelper;
 
     private void testLocationProvider() {
         LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -46,15 +47,33 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
 
     private void getLocation(Location location){
         if(location != null){
-            latitudeText.setText(Double.toString(location.getLatitude()));
-            longitudeText.setText(Double.toString(location.getLongitude()));
+            String laStr = Double.toString(location.getLatitude());
+            String loStr = Double.toString(location.getLongitude());
+            latitudeText.setText(laStr);
+            longitudeText.setText(loStr);
 
             Calendar rightNow = Calendar.getInstance();
 
-            timeText.setText(Long.toString(location.getElapsedRealtimeNanos()/1000000000)
+            String ElapseFromBootInSec = Long.toString(location.getElapsedRealtimeNanos() / 1000000000);
+            timeText.setText(ElapseFromBootInSec
                     + "(" + rightNow.getTime().toString() + ")");
 
+            //Save position fix in the SQLite database
+            dbHelper.create(ElapseFromBootInSec, laStr + "," + loStr);
 
+//           Cursor cursor = dbHelper.getAll();
+//            int rows_num = cursor.getCount();
+//            if(rows_num != 0) {
+//                cursor.moveToFirst();			//將指標移至第一筆資料
+//                for(int i=0; i<rows_num; i++) {
+//                    int id = cursor.getInt(0);	//取得第0欄的資料，根據欄位type使用適當語法
+//                    String name = cursor.getString(1);
+//                    int value = cursor.getInt(2);
+//                    Toast.makeText(this, name + " " + Integer.valueOf(name), Toast.LENGTH_SHORT).show();
+//                    cursor.moveToNext();		//將指標移至下一筆資料
+//                }
+//            }
+//            cursor.close();
         }
     }
 
@@ -77,8 +96,10 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
 
         setViews();
 
-        testLocationProvider();
+        dbHelper = new SQLite(this);
+        Toast.makeText(this, "Database Created!", Toast.LENGTH_SHORT).show();
 
+        testLocationProvider();
     }
 
     @Override
@@ -95,6 +116,12 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         if(getService){
             lm.removeUpdates(this);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        dbHelper.close();
     }
 
     @Override
