@@ -8,6 +8,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -45,44 +46,78 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         getLocation(location);
     }
 
+    private static final String TAG = "TAPS";
+
     //Running average
     private double findRACentroid(double[] points, double newPoint)
     {
         double sum = 0;
+
         //shift elements
-        for(int i=points.length;i>0;i--){
+        for(int i=points.length-1; i>0; i--){
             sum += points[i-1];
             points[i] = points[i-1];
         }
         points[0] = newPoint;
+
         sum += newPoint;
-        return sum /= 10;
+        return (sum / points.length);
     }
 
     private boolean flag_firstFix = true;
-    final static double WEIGHT = 0.95;
+    final static double WEIGHT = 0.1;
     double lastLatitude,lastLongitude, currLatitude, currLongitude;
     int intLatitude, intLongitude;
-    private double tapsLatitude[];
-    private double tapsLongitude[];
+    private double tapsLatitude[] = new double[10];
+    private double tapsLongitude[] = new double[10];
+    private double centroidOfLa;
+    private double centroidOfLo;
     private void getLocation(Location location){
-        tapsLatitude = new double[10];
-        tapsLongitude = new double[10];
 
         if(location != null){
 
-            intLatitude = (int)(location.getLatitude() * 1000000);
-            intLongitude = (int)(location.getLongitude() * 1000000);
-            currLatitude = (double)intLatitude/1000000;
-            currLongitude = (double)intLongitude/1000000;
+//            intLatitude = (int)(location.getLatitude() * 1000000);
+//            intLongitude = (int)(location.getLongitude() * 1000000);
+//            currLatitude = (double)intLatitude/1000000;
+//            currLongitude = (double)intLongitude/1000000;
+            currLatitude = location.getLatitude();
+            currLongitude = location.getLongitude();
 
             if(flag_firstFix){ //First position fix
                 lastLatitude = currLatitude;
                 lastLongitude = currLongitude;
+
+                //initial taps
+//                for(int i=0; i < tapsLongitude.length; i++){
+//                    tapsLongitude[i] = lastLongitude;
+//                    tapsLatitude[i] = lastLatitude;
+//                }
+
+                flag_firstFix = false;
             }else{ //Use running average to reduce the error
                 lastLatitude = lastLatitude * WEIGHT + (1-WEIGHT) * currLatitude;
                 lastLongitude = lastLongitude * WEIGHT + (1-WEIGHT) * currLongitude;
             }
+
+
+//            Log.v(TAG, "tapsLongitude Before Shift");
+//            for(int i=tapsLongitude.length-1; i>=0; i--){
+//                Log.v(TAG, Double.toString(tapsLongitude[i]));
+//            }
+
+            //find centroid of continuous 10 position fix
+            //centroidOfLa = findRACentroid(tapsLatitude, lastLatitude);
+            //centroidOfLo = findRACentroid(tapsLongitude, lastLongitude);
+
+//            Log.v(TAG, "tapsLongitude After Shift");
+//            for(int i=tapsLongitude.length-1; i>=0; i--){
+//                Log.v(TAG, Double.toString(tapsLongitude[i]));
+//            }
+
+//            intLatitude = (int)(centroidOfLa * 1000000);
+//            intLongitude = (int)(centroidOfLo * 1000000);
+//            centroidOfLa = (double)intLatitude/1000000;
+//            centroidOfLo = (double)intLongitude/1000000;
 
             //show position fix on the TextView
             latitudeText.setText(Double.toString(lastLatitude));
@@ -146,7 +181,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
     protected void onResume() {
         super.onResume();
         if(getService){
-            lm.requestLocationUpdates(bestProvider, 100, 1, this);
+            lm.requestLocationUpdates(bestProvider, 5000, 3, this);
         }
     }
 
