@@ -45,36 +45,75 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         getLocation(location);
     }
 
-    private void getLocation(Location location){
-        if(location != null){
-            String laStr = Double.toString(location.getLatitude());
-            String loStr = Double.toString(location.getLongitude());
-            latitudeText.setText(laStr);
-            longitudeText.setText(loStr);
+    //Running average
+    private double findRACentroid(double[] points, double newPoint)
+    {
+        double sum = 0;
+        //shift elements
+        for(int i=points.length;i>0;i--){
+            sum += points[i-1];
+            points[i] = points[i-1];
+        }
+        points[0] = newPoint;
+        sum += newPoint;
+        return sum /= 10;
+    }
 
+    private boolean flag_firstFix = true;
+    final static double WEIGHT = 0.95;
+    double lastLatitude,lastLongitude, currLatitude, currLongitude;
+    int intLatitude, intLongitude;
+    private double tapsLatitude[];
+    private double tapsLongitude[];
+    private void getLocation(Location location){
+        tapsLatitude = new double[10];
+        tapsLongitude = new double[10];
+
+        if(location != null){
+
+            intLatitude = (int)(location.getLatitude() * 1000000);
+            intLongitude = (int)(location.getLongitude() * 1000000);
+            currLatitude = (double)intLatitude/1000000;
+            currLongitude = (double)intLongitude/1000000;
+
+            if(flag_firstFix){ //First position fix
+                lastLatitude = currLatitude;
+                lastLongitude = currLongitude;
+            }else{ //Use running average to reduce the error
+                lastLatitude = lastLatitude * WEIGHT + (1-WEIGHT) * currLatitude;
+                lastLongitude = lastLongitude * WEIGHT + (1-WEIGHT) * currLongitude;
+            }
+
+            //show position fix on the TextView
+            latitudeText.setText(Double.toString(lastLatitude));
+            longitudeText.setText(Double.toString(lastLongitude));
+
+            //Get the current time
             Calendar rightNow = Calendar.getInstance();
 
+            //Get the time elapse from the device boot
             String ElapseFromBootInSec = Long.toString(location.getElapsedRealtimeNanos() / 1000000000);
             timeText.setText(ElapseFromBootInSec
                     + "(" + rightNow.getTime().toString() + ")");
 
             //Save position fix in the SQLite database
-            dbHelper.create(ElapseFromBootInSec, laStr, loStr);
+            dbHelper.create(ElapseFromBootInSec, Double.toString(lastLatitude), Double.toString(lastLongitude));
 
-           Cursor cursor = dbHelper.getAll();
-            int rows_num = cursor.getCount();
-            if(rows_num != 0) {
-                cursor.moveToFirst();			//將指標移至第一筆資料
-                for(int i=0; i<rows_num; i++) {
-                    int id = cursor.getInt(0);	//取得第0欄的資料，根據欄位type使用適當語法
-                    String time = cursor.getString(1);
-                    String latitude = cursor.getString(2);
-                    String longitude = cursor.getString(3);
-                    Toast.makeText(this, time + " " + latitude + ", " + longitude, Toast.LENGTH_SHORT).show();
-                    cursor.moveToNext();		//將指標移至下一筆資料
-                }
-            }
-            cursor.close();
+            //Read the data store in the database
+//            Cursor cursor = dbHelper.getAll();
+//            int rows_num = cursor.getCount();
+//            if(rows_num != 0) {
+//                cursor.moveToFirst();			//將指標移至第一筆資料
+//                for(int i=0; i<rows_num; i++) {
+//                    int id = cursor.getInt(0);	//取得第0欄的資料，根據欄位type使用適當語法
+//                    String time = cursor.getString(1);
+//                    String latitude = cursor.getString(2);
+//                    String longitude = cursor.getString(3);
+//                    Toast.makeText(this, time + " " + latitude + ", " + longitude, Toast.LENGTH_SHORT).show();
+//                    cursor.moveToNext();		//將指標移至下一筆資料
+//                }
+//            }
+//            cursor.close();
         }
     }
 
@@ -107,7 +146,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
     protected void onResume() {
         super.onResume();
         if(getService){
-            lm.requestLocationUpdates(bestProvider, 1000, 1, this);
+            lm.requestLocationUpdates(bestProvider, 100, 1, this);
         }
     }
 
