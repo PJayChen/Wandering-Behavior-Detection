@@ -186,12 +186,12 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
                     //if(rows_num == 0)break;
                     Log.v("THREAD", "NUM:" + String.valueOf(rows_num) + ", cnt:" + String.valueOf(cnt));
 
-                    for(int i=1; i<cnt; i++){
-                        cursor.moveToNext();
-                    }
 
                     if((rows_num != 0) && ((rows_num - cnt) >= 3)){
                         cursor.moveToFirst();
+                        for(int i=1; i<cnt; i++){
+                            cursor.moveToNext();
+                        }
                         for(int i=0; i<5; i+=2) {
                             points[i] = Double.valueOf(cursor.getString(2)); //latitude
                             points[i+1] = Double.valueOf(cursor.getString(3)); //longitude
@@ -211,7 +211,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
                         if(Math.abs(angle) >= 90) sharpAngle++;
                         Log.d("THREAD", "SharpAngle count:" + String.valueOf(sharpAngle) );
 
-                        cnt = rows_num;
+                        cnt = rows_num - 1;
                     }
 
                     cursor.close();
