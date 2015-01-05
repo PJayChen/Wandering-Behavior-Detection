@@ -46,32 +46,33 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         getLocation(location);
     }
 
-    private static final String TAG = "TAPS";
+
 
     //Running average
-    private double findRACentroid(double[] points, double newPoint)
-    {
-        double sum = 0;
+//    private double findRACentroid(double[] points, double newPoint)
+//    {
+//        double sum = 0;
+//
+//        //shift elements
+//        for(int i=points.length-1; i>0; i--){
+//            sum += points[i-1];
+//            points[i] = points[i-1];
+//        }
+//        points[0] = newPoint;
+//
+//        sum += newPoint;
+//        return (sum / points.length);
+//    }
 
-        //shift elements
-        for(int i=points.length-1; i>0; i--){
-            sum += points[i-1];
-            points[i] = points[i-1];
-        }
-        points[0] = newPoint;
-
-        sum += newPoint;
-        return (sum / points.length);
-    }
-
+//    private static final String TAG = "TAPS";
     private boolean flag_firstFix = true;
     final static double WEIGHT = 0.1;
     double lastLatitude,lastLongitude, currLatitude, currLongitude;
-    int intLatitude, intLongitude;
-    private double tapsLatitude[] = new double[10];
-    private double tapsLongitude[] = new double[10];
-    private double centroidOfLa;
-    private double centroidOfLo;
+//    int intLatitude, intLongitude;
+//    private double tapsLatitude[] = new double[10];
+//    private double tapsLongitude[] = new double[10];
+//    private double centroidOfLa;
+//    private double centroidOfLo;
     private void getLocation(Location location){
 
         if(location != null){
@@ -152,6 +153,90 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         }
     }
 
+    //(y1, x1, y2, x2), 1: last vector, 2: next vector
+    private double getAngleOfTwoVectors(double laP1, double loP1, double laP2, double loP2){
+        double angle = 0;
+        double []vector;
+        vector = new double[2];
+        vector[0] = laP2 - laP1;
+        vector[1] = loP2 - loP1;
+
+        //angle = Math.atan2(laP2 - laP1, loP2 - loP1);// - Math.atan2(laP1, loP1);
+        angle = Math.atan2(laP2, loP2) - Math.atan2(laP1, loP1);
+        return Math.toDegrees(angle);
+    }
+
+    private Thread tWanderingDetection;
+    private int cnt = 0;
+    private double[] points;
+    private double[] vectors;
+    private int sharpAngle = 0;
+    private Runnable runWanderingDetection = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                while (true) {
+                    Log.v("THREAD", "thread is running");
+                    points = new double[6];
+                    vectors = new double[4];
+                    double angle;
+                    Cursor cursor = dbHelper.getAll();
+                    int rows_num = cursor.getCount();
+
+                    //if(rows_num == 0)break;
+                    Log.v("THREAD", "NUM:" + String.valueOf(rows_num) + ", cnt:" + String.valueOf(cnt));
+
+                    for(int i=1; i<cnt; i++){
+                        cursor.moveToNext();
+                    }
+
+                    if((rows_num != 0) && ((rows_num - cnt) >= 3)){
+                        cursor.moveToFirst();
+                        for(int i=0; i<5; i+=2) {
+                            points[i] = Double.valueOf(cursor.getString(2)); //latitude
+                            points[i+1] = Double.valueOf(cursor.getString(3)); //longitude
+                            Log.i("THREAD", cursor.getString(2) + ", " + cursor.getString(3));
+                            //if(i >= 2)break;
+                            cursor.moveToNext();
+                        }
+                        vectors[0] = points[2] - points[0]; //latitude of vector1
+                        vectors[1] = points[3] - points[1]; //longitude of vector1
+                        vectors[2] = points[4] - points[2]; //latitude of vector2
+                        vectors[3] = points[5] - points[3]; //longitude of vector2
+
+                        angle = getAngleOfTwoVectors(vectors[0], vectors[1], vectors[2], vectors[3]);
+                        Log.d("THREAD", String.valueOf(vectors[0]) + ", " + String.valueOf(vectors[0]) + ". " + String.valueOf(vectors[2]) + ", " + String.valueOf(vectors[3]) );
+                        Log.d("THREAD", "Angle:" + String.valueOf(angle));
+
+                        if(Math.abs(angle) >= 90) sharpAngle++;
+                        Log.d("THREAD", "SharpAngle count:" + String.valueOf(sharpAngle) );
+
+                        cnt = rows_num;
+                    }
+
+                    cursor.close();
+                    Thread.sleep(1000);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+//            Cursor cursor = dbHelper.getAll();
+//            int rows_num = cursor.getCount();
+//            if(rows_num != 0){
+//                cursor.moveToFirst();
+//                for(int i=0; i<rows_num; i++) {
+//                    int id = cursor.getInt(0);	//取得第0欄的資料，根據欄位type使用適當語法
+//                    String time = cursor.getString(1);
+//                    String latitude = cursor.getString(2);
+//                    String longitude = cursor.getString(3);
+//                    cursor.moveToNext();		//將指標移至下一筆資料
+//                    Log.v("THREAD",Integer.toString(id) + ")" + time + ", " + latitude + ", " + longitude);
+//                }
+//            }
+//            cursor.close();
+        }
+    };
+
 
     private void setViews(){
         latitudeText = (TextView)findViewById(R.id.txtView_Latitude);
@@ -172,9 +257,13 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         setViews();
 
         dbHelper = new SQLite(this);
+        dbHelper.upgrade();
         Toast.makeText(this, "Database Created!", Toast.LENGTH_SHORT).show();
 
         testLocationProvider();
+
+        tWanderingDetection = new Thread(runWanderingDetection);
+        tWanderingDetection.start();
     }
 
     @Override
