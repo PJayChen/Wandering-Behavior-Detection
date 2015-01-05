@@ -2,7 +2,8 @@
     android:layout_height="fill_parent"
     android:layout_width="fill_parent"
     android:orientation="vertical"
-    android:id="@+id/baseLinearLayout">
+    android:id="@+id/baseLinearLayout"
+    android:weightSum="1">
 
 
     <TextView
@@ -60,4 +61,17 @@
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="Calculating..."
         android:id="@+id/txtView_sp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/scrollView">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DebugMsg"
+            android:id="@+id/txtView_Debug" />
+    </ScrollView>
+
 </LinearLayout>

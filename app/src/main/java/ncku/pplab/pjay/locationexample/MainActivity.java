@@ -184,15 +184,19 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         public void run() {
             try {
                 while (tWD_Flag) {
+                    Bundle dataBd = new Bundle();
+                    Message msg = new Message();
+
                     Log.v("THREAD", "thread is running");
                     points = new double[6];
                     vectors = new double[4];
-                    double angle;
+                    double angle=0;
                     Cursor cursor = dbHelper.getAll();
                     int rows_num = cursor.getCount();
 
                     //if(rows_num == 0)break;
                     Log.v("THREAD", "NUM:" + String.valueOf(rows_num) + ", cnt:" + String.valueOf(cnt));
+                    dataBd.putString("NUM", "NUM:" + String.valueOf(rows_num) + ", CNT:" + String.valueOf(cnt));
 
 
                     if((rows_num != 0) && ((rows_num - cnt) >= 3)){
@@ -215,6 +219,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
                         angle = getAngleOfTwoVectors(vectors[0], vectors[1], vectors[2], vectors[3]);
                         Log.d("THREAD", String.valueOf(vectors[0]) + ", " + String.valueOf(vectors[0]) + ". " + String.valueOf(vectors[2]) + ", " + String.valueOf(vectors[3]) );
                         Log.d("THREAD", "Angle:" + String.valueOf(angle));
+                        dataBd.putString("ANGLE", "Angle:" + String.valueOf(angle));
 
                         if(Math.abs(angle) >= 90) sharpAngle++;
                         Log.d("THREAD", "SharpAngle count:" + String.valueOf(sharpAngle) );
@@ -222,8 +227,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
                         cnt = rows_num - 1;
                     }
 
-                    Bundle dataBd = new Bundle();
-                    Message msg = new Message();
+
                     dataBd.putInt("Sharp", sharpAngle);
                     msg.what = SHARP_POINT;
                     msg.setData(dataBd);
@@ -263,6 +267,10 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
                     sharpPText.setText(String.valueOf(sharpCnt));
                     if(sharpCnt >= 3) baseLinearLayout.setBackgroundColor(Color.RED);
                     else baseLinearLayout.setBackgroundColor(Color.rgb(155,155,155));
+
+                    String debugMsg;
+                    debugMsg = msg.getData().getString("NUM") + "\n" + msg.getData().getString("ANGLE");
+                    debugText.setText(debugText.getText() + "\n" + debugMsg);
                     break;
             }
         }
