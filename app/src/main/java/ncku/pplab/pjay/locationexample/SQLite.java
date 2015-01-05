@@ -81,6 +81,11 @@ public class SQLite extends SQLiteOpenHelper{
         return db.insert("fix", null, args);
     }
 
+
+    public void upgrade(){
+        db.execSQL("DROP TABLE IF EXISTS " + "fix");
+        onCreate(db);
+    }
 //    //刪除記錄，回傳成功刪除筆數
 //    public int delete(long rowId) {
 //        return db.delete("fix",	//資料表名稱
