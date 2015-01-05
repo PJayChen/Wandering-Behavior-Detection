@@ -25,6 +25,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
     private TextView longitudeText;
     private TextView timeText;
     private TextView sharpPText;
+    private TextView debugText;
     private LinearLayout baseLinearLayout;
 
     private boolean getService = false;
@@ -177,11 +178,12 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
     private double[] points;
     private double[] vectors;
     private int sharpAngle = 0;
+    private boolean tWD_Flag = true;
     private Runnable runWanderingDetection = new Runnable() {
         @Override
         public void run() {
             try {
-                while (true) {
+                while (tWD_Flag) {
                     Log.v("THREAD", "thread is running");
                     points = new double[6];
                     vectors = new double[4];
@@ -249,7 +251,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
 //            cursor.close();
         }
     };
-    private static final int SHARP_POINT = 0, WANDERING = 1;
+    private static final int SHARP_POINT = 0;
     //UI(main) Thread handler
     private Handler UI_Handler = new Handler(){
         @Override
@@ -266,6 +268,18 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         }
     };
 
+    //Stop thread by set the runnable flag to FLASE
+    private boolean stopThread(Thread t){
+        //boolean flag = true;
+        if(t != null){
+            //flag = false;
+            t.interrupt();
+            Log.d("THREAD", "Thread " + t.getName() + " stop");
+            t = null;
+        }
+        return false;
+    }
+
     private void setViews(){
         latitudeText = (TextView)findViewById(R.id.txtView_Latitude);
         longitudeText = (TextView)findViewById(R.id.txtView_Longitude);
@@ -279,6 +293,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         sharpPText = (TextView)findViewById(R.id.txtView_sp);
         baseLinearLayout = (LinearLayout) findViewById(R.id.baseLinearLayout);
 
+        debugText = (TextView)findViewById(R.id.txtView_Debug);
     }
 
     @Override
@@ -295,14 +310,16 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         testLocationProvider();
 
         tWanderingDetection = new Thread(runWanderingDetection);
+        tWD_Flag = true;
         tWanderingDetection.start();
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         if(getService){
-            lm.requestLocationUpdates(bestProvider, 5000, 3, this);
+            lm.requestLocationUpdates(bestProvider, 1000, 0.1f, this);
         }
     }
 
@@ -317,6 +334,10 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        tWD_Flag = stopThread(tWanderingDetection);
+        tWanderingDetection = null;
+
         dbHelper.close();
     }
 
