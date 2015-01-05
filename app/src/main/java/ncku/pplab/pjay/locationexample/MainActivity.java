@@ -2,16 +2,19 @@ package ncku.pplab.pjay.locationexample;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import android.os.Handler;
 
 import java.util.Calendar;
 
@@ -21,6 +24,9 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
     private TextView latitudeText;
     private TextView longitudeText;
     private TextView timeText;
+    private TextView sharpPText;
+    private LinearLayout baseLinearLayout;
+
     private boolean getService = false;
     private SQLite dbHelper;
 
@@ -214,6 +220,13 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
                         cnt = rows_num - 1;
                     }
 
+                    Bundle dataBd = new Bundle();
+                    Message msg = new Message();
+                    dataBd.putInt("Sharp", sharpAngle);
+                    msg.what = SHARP_POINT;
+                    msg.setData(dataBd);
+                    UI_Handler.sendMessage(msg);
+
                     cursor.close();
                     Thread.sleep(1000);
                 }
@@ -236,7 +249,22 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
 //            cursor.close();
         }
     };
-
+    private static final int SHARP_POINT = 0, WANDERING = 1;
+    //UI(main) Thread handler
+    private Handler UI_Handler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            switch(msg.what){
+                case SHARP_POINT:
+                    int sharpCnt = msg.getData().getInt("Sharp");
+                    sharpPText.setText(String.valueOf(sharpCnt));
+                    if(sharpCnt >= 3) baseLinearLayout.setBackgroundColor(Color.RED);
+                    else baseLinearLayout.setBackgroundColor(Color.rgb(155,155,155));
+                    break;
+            }
+        }
+    };
 
     private void setViews(){
         latitudeText = (TextView)findViewById(R.id.txtView_Latitude);
@@ -247,6 +275,10 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
 
         timeText = (TextView)findViewById(R.id.txtView_Time);
         timeText.setText("Getting...");
+
+        sharpPText = (TextView)findViewById(R.id.txtView_sp);
+        baseLinearLayout = (LinearLayout) findViewById(R.id.baseLinearLayout);
+
     }
 
     @Override
