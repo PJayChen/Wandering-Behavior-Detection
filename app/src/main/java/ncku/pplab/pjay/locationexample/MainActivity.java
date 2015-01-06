@@ -73,7 +73,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
 
 //    private static final String TAG = "TAPS";
     private boolean flag_firstFix = true;
-    final static double WEIGHT = 0.1;
+    final static double WEIGHT = 0.2;
     double lastLatitude,lastLongitude, currLatitude, currLongitude;
 //    int intLatitude, intLongitude;
 //    private double tapsLatitude[] = new double[10];
@@ -222,6 +222,8 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
                         dataBd.putString("ANGLE", "Angle:" + String.valueOf(angle));
 
                         if(Math.abs(angle) >= 90) sharpAngle++;
+                        //else sharpAngle = 0;
+
                         Log.d("THREAD", "SharpAngle count:" + String.valueOf(sharpAngle) );
 
                         cnt = rows_num - 1;
@@ -327,7 +329,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
     protected void onResume() {
         super.onResume();
         if(getService){
-            lm.requestLocationUpdates(bestProvider, 1000, 0.1f, this);
+            lm.requestLocationUpdates(bestProvider, 1000, 2, this);
         }
     }
 
