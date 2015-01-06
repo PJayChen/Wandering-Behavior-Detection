@@ -54,40 +54,13 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
     }
 
 
-
-    //Running average
-//    private double findRACentroid(double[] points, double newPoint)
-//    {
-//        double sum = 0;
-//
-//        //shift elements
-//        for(int i=points.length-1; i>0; i--){
-//            sum += points[i-1];
-//            points[i] = points[i-1];
-//        }
-//        points[0] = newPoint;
-//
-//        sum += newPoint;
-//        return (sum / points.length);
-//    }
-
-//    private static final String TAG = "TAPS";
     private boolean flag_firstFix = true;
     final static double WEIGHT = 0.2;
     double lastLatitude,lastLongitude, currLatitude, currLongitude;
-//    int intLatitude, intLongitude;
-//    private double tapsLatitude[] = new double[10];
-//    private double tapsLongitude[] = new double[10];
-//    private double centroidOfLa;
-//    private double centroidOfLo;
     private void getLocation(Location location){
 
         if(location != null){
 
-//            intLatitude = (int)(location.getLatitude() * 1000000);
-//            intLongitude = (int)(location.getLongitude() * 1000000);
-//            currLatitude = (double)intLatitude/1000000;
-//            currLongitude = (double)intLongitude/1000000;
             currLatitude = location.getLatitude();
             currLongitude = location.getLongitude();
 
@@ -95,37 +68,11 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
                 lastLatitude = currLatitude;
                 lastLongitude = currLongitude;
 
-                //initial taps
-//                for(int i=0; i < tapsLongitude.length; i++){
-//                    tapsLongitude[i] = lastLongitude;
-//                    tapsLatitude[i] = lastLatitude;
-//                }
-
                 flag_firstFix = false;
             }else{ //Use running average to reduce the error
                 lastLatitude = lastLatitude * WEIGHT + (1-WEIGHT) * currLatitude;
                 lastLongitude = lastLongitude * WEIGHT + (1-WEIGHT) * currLongitude;
             }
-
-
-//            Log.v(TAG, "tapsLongitude Before Shift");
-//            for(int i=tapsLongitude.length-1; i>=0; i--){
-//                Log.v(TAG, Double.toString(tapsLongitude[i]));
-//            }
-
-            //find centroid of continuous 10 position fix
-            //centroidOfLa = findRACentroid(tapsLatitude, lastLatitude);
-            //centroidOfLo = findRACentroid(tapsLongitude, lastLongitude);
-
-//            Log.v(TAG, "tapsLongitude After Shift");
-//            for(int i=tapsLongitude.length-1; i>=0; i--){
-//                Log.v(TAG, Double.toString(tapsLongitude[i]));
-//            }
-
-//            intLatitude = (int)(centroidOfLa * 1000000);
-//            intLongitude = (int)(centroidOfLo * 1000000);
-//            centroidOfLa = (double)intLatitude/1000000;
-//            centroidOfLo = (double)intLongitude/1000000;
 
             //show position fix on the TextView
             latitudeText.setText(Double.toString(lastLatitude));
@@ -142,21 +89,6 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
             //Save position fix in the SQLite database
             dbHelper.create(ElapseFromBootInSec, Double.toString(lastLatitude), Double.toString(lastLongitude));
 
-            //Read the data store in the database
-//            Cursor cursor = dbHelper.getAll();
-//            int rows_num = cursor.getCount();
-//            if(rows_num != 0) {
-//                cursor.moveToFirst();			//將指標移至第一筆資料
-//                for(int i=0; i<rows_num; i++) {
-//                    int id = cursor.getInt(0);	//取得第0欄的資料，根據欄位type使用適當語法
-//                    String time = cursor.getString(1);
-//                    String latitude = cursor.getString(2);
-//                    String longitude = cursor.getString(3);
-//                    Toast.makeText(this, time + " " + latitude + ", " + longitude, Toast.LENGTH_SHORT).show();
-//                    cursor.moveToNext();		//將指標移至下一筆資料
-//                }
-//            }
-//            cursor.close();
         }
     }
 
@@ -241,20 +173,6 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-//            Cursor cursor = dbHelper.getAll();
-//            int rows_num = cursor.getCount();
-//            if(rows_num != 0){
-//                cursor.moveToFirst();
-//                for(int i=0; i<rows_num; i++) {
-//                    int id = cursor.getInt(0);	//取得第0欄的資料，根據欄位type使用適當語法
-//                    String time = cursor.getString(1);
-//                    String latitude = cursor.getString(2);
-//                    String longitude = cursor.getString(3);
-//                    cursor.moveToNext();		//將指標移至下一筆資料
-//                    Log.v("THREAD",Integer.toString(id) + ")" + time + ", " + latitude + ", " + longitude);
-//                }
-//            }
-//            cursor.close();
         }
     };
     private static final int SHARP_POINT = 0;
