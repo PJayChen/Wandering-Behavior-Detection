@@ -311,21 +311,26 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
 
             while(tPOST_flag) {
-
-               // try {
                 if (locationChange) {
                     locationChange = false;
-                    doPOST( createFixData() );
+                    Bundle bd = new Bundle();
+                    String resp;
+                    Message msg = new Message();
+
+                    resp = doPOST( createFixData() );
+
+                    //Send the Http POST response to the UI Thread
+                    bd.putString("RESP", resp);
+                    msg.what = POST_RESP;
+                    msg.setData(bd);
+                    UI_Handler.sendMessage(msg);
                 }
-                    //Thread.sleep(1000);
-               // } catch (InterruptedException e) {
-               //     e.printStackTrace();
-               // }
             }
         }
     };
 
     private static final int SHARP_POINT = 0;
+    private static final int POST_RESP = 1;
     //UI(main) Thread handler
     private Handler UI_Handler = new Handler(){
         @Override
@@ -341,6 +346,10 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
                     String debugMsg;
                     debugMsg = msg.getData().getString("NUM") + "\n" + msg.getData().getString("ANGLE");
                     debugText.setText(debugText.getText() + "\n" + debugMsg);
+                    break;
+                case POST_RESP:
+                    String resp = msg.getData().getString("RESP");
+                    debugText.setText(debugText.getText() + resp + '\n');
                     break;
             }
         }
