@@ -7,16 +7,40 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Message;
+import android.os.*;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.os.Handler;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
+import java.util.SimpleTimeZone;
+import java.util.TimeZone;
+
+import javax.net.ssl.HttpsURLConnection;
 
 
 public class MainActivity extends ActionBarActivity implements LocationListener{
@@ -175,6 +199,132 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
             }
         }
     };
+
+
+    private String createFixData() {
+        String formattedData;
+        int decLat = (int) lastLatitude;
+        double minLat = new BigDecimal( (lastLatitude - decLat) * 60 ).setScale(4, BigDecimal.ROUND_HALF_UP).doubleValue(); //minute part of latitude
+        int decLng = (int) lastLongitude;
+        double minLng = new BigDecimal( (lastLongitude - decLng) * 60 ).setScale(4, BigDecimal.ROUND_HALF_UP).doubleValue(); //minute part of longitude
+
+        String lat = String.valueOf(decLat) + String.valueOf(minLat);
+        String lng = String.valueOf(decLng) + String.valueOf(minLng);
+
+        //Now the format of lat and longitude will be
+        //ddmm.mmmmN and dddmm.mmmmE
+        lat += (decLat >= 0)? 'N' : 'S';
+        lng += (decLng >= 0)? 'E' : 'W';
+
+        //produce the format of current date and UTC time which match the GPS module produced.
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat date = new SimpleDateFormat("ddMMyy");
+        SimpleDateFormat time = new SimpleDateFormat("HHmmss", Locale.UK); //24hr format
+        time.setTimeZone(TimeZone.getTimeZone("GMT"));
+
+        formattedData = date.format(cal.getTime()) + ", "
+                + time.format(cal.getTime()) + ".000, "
+                + lat + ", "
+                + lng;
+
+        Log.v("FIX", formattedData);
+
+        return formattedData;
+    }
+
+    private String doPOST(String postData) {
+        HttpURLConnection httpConn = null;
+        try {
+            Log.v("POST", "do post!");
+            //Get the data from Views for sending to server
+//            String urlMalteseAnn = urlEditText.getText().toString();
+//            String postName = nameEditText.getText().toString();
+//            String postData = valueEditText.getText().toString();
+            String urlMalteseAnn = "http://140.116.156.227:8888/rxfix";
+            String postName = "fix";
+            String postDataFormat = "300315, 065812.000, 2259.8259N, 12013.3452E";
+
+            if (postDataFormat.length() == postData.length())
+                Log.v("FIX", "equal!");
+            else
+                Log.v("FIX", "not equal!");
+
+            URL url = new URL(urlMalteseAnn);
+            httpConn = (HttpURLConnection) url.openConnection();
+            httpConn.setDoInput(true);
+            httpConn.setDoOutput(true);
+            httpConn.setRequestMethod("POST");
+            httpConn.setRequestProperty("Content-type", "application/x-www-form-urlencoded");
+            httpConn.setUseCaches(false);
+            httpConn.connect();
+
+            DataOutputStream dos = new DataOutputStream(httpConn.getOutputStream());
+
+            String postContent = URLEncoder.encode(postName, "UTF-8")
+                    + "="
+                    + URLEncoder.encode(postData, "UTF-8");
+
+            dos.write(postContent.getBytes());
+            dos.flush();
+            dos.close();// finish the post request
+
+            //Check the Http Code is 200(HTTP_OK) or NOT
+            int respondCode = httpConn.getResponseCode();
+            if(respondCode == HttpURLConnection.HTTP_OK) {
+                Log.v("POST", "send <" + postName + ", " + postData + "> to " + urlMalteseAnn);
+                Log.v("POST", "response OK!");
+
+            }else {
+                Log.v("POST", "response fail!");
+            }
+
+            //Read the response from the server
+            Reader reader = new InputStreamReader(httpConn.getInputStream(), "UTF-8");
+            char[] buffer = new char[200];
+            int cnt;
+            cnt = reader.read(buffer);
+            //pick out used bytes in buffer
+            String bufferStr = new String(buffer, 0, cnt);
+
+            Log.v("POST", "response msg" + "(" + (cnt) + " bytes)" + ": " + bufferStr);
+            return bufferStr;
+
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (httpConn != null) {
+                httpConn.disconnect();
+            }
+        }
+        return new String("Fail, maybe no Internet");
+    }
+
+    private Thread tDoHttpPOST;
+    private boolean tPOST_flag = true;
+    private boolean locationChange = true;
+    private Runnable runDoHttpPOST = new Runnable() {
+        @Override
+        public void run() {
+            //set the thread priority lower than UI thread
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+
+            while(tPOST_flag) {
+
+               // try {
+                if (locationChange) {
+                    locationChange = false;
+                    doPOST( createFixData() );
+                }
+                    //Thread.sleep(1000);
+               // } catch (InterruptedException e) {
+               //     e.printStackTrace();
+               // }
+            }
+        }
+    };
+
     private static final int SHARP_POINT = 0;
     //UI(main) Thread handler
     private Handler UI_Handler = new Handler(){
@@ -239,8 +389,11 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
 
         tWanderingDetection = new Thread(runWanderingDetection);
         tWD_Flag = true;
-        tWanderingDetection.start();
+        //tWanderingDetection.start();
 
+        tDoHttpPOST = new Thread(runDoHttpPOST);
+        tPOST_flag = true;
+        tDoHttpPOST.start();
     }
 
     @Override
@@ -267,11 +420,15 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         tWanderingDetection = null;
 
         dbHelper.close();
+
+        tPOST_flag = stopThread(tDoHttpPOST);
+        tDoHttpPOST = null;
     }
 
     @Override
     public void onLocationChanged(Location location) {
         getLocation(location);
+        locationChange = true;
     }
 
     @Override
