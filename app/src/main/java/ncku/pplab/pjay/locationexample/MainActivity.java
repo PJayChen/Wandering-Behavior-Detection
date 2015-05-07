@@ -32,6 +32,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -200,7 +201,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         }
     };
 
-
+    static final private String DEVICEID = "p000";
     private String createFixData() {
         String formattedData;
         int decLat = (int) lastLatitude;
@@ -208,8 +209,10 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         int decLng = (int) lastLongitude;
         double minLng = new BigDecimal( (lastLongitude - decLng) * 60 ).setScale(4, BigDecimal.ROUND_HALF_UP).doubleValue(); //minute part of longitude
 
-        String lat = String.valueOf(decLat) + String.valueOf(minLat);
-        String lng = String.valueOf(decLng) + String.valueOf(minLng);
+        DecimalFormat zeroPadding = new DecimalFormat("#.0000");
+
+        String lat = String.valueOf(decLat) + String.valueOf( zeroPadding.format(minLat));
+        String lng = String.valueOf(decLng) + String.valueOf(zeroPadding.format(minLng));
 
         //Now the format of lat and longitude will be
         //ddmm.mmmmN and dddmm.mmmmE
@@ -221,8 +224,9 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         SimpleDateFormat date = new SimpleDateFormat("ddMMyy");
         SimpleDateFormat time = new SimpleDateFormat("HHmmss", Locale.UK); //24hr format
         time.setTimeZone(TimeZone.getTimeZone("GMT"));
-
-        formattedData = date.format(cal.getTime()) + ", "
+        
+        formattedData = DEVICEID + ", "
+                + date.format(cal.getTime()) + ", "
                 + time.format(cal.getTime()) + ".000, "
                 + lat + ", "
                 + lng;
@@ -242,7 +246,7 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
 //            String postData = valueEditText.getText().toString();
             String urlMalteseAnn = "http://140.116.156.227:8888/rxfix";
             String postName = "fix";
-            String postDataFormat = "300315, 065812.000, 2259.8259N, 12013.3452E";
+            String postDataFormat = "p000, 300315, 065812.000, 2259.8259N, 12013.3452E";
 
             if (postDataFormat.length() == postData.length())
                 Log.v("FIX", "equal!");
