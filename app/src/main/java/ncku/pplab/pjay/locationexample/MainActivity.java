@@ -1,6 +1,9 @@
 package ncku.pplab.pjay.locationexample;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.location.Criteria;
@@ -8,8 +11,11 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.*;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,7 +50,7 @@ import java.util.TimeZone;
 import javax.net.ssl.HttpsURLConnection;
 
 
-public class MainActivity extends ActionBarActivity implements LocationListener{
+public class MainActivity extends ActionBarActivity implements View.OnClickListener{
 
     private TextView latitudeText;
     private TextView longitudeText;
@@ -53,67 +59,21 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
     private TextView debugText;
     private LinearLayout baseLinearLayout;
 
-    private boolean getService = false;
+    private Button startButton, stopButton;
+
+    //private boolean getService = false;
     private SQLite dbHelper;
 
     private void testLocationProvider() {
         LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
-            getService = true;
-            locationInitial();
+            //getService = true;
+            startButton.setClickable(true);
+//            locationInitial();
         }else{
             Toast.makeText(this, "Please open GPS and Network for location", Toast.LENGTH_SHORT).show();
             //TO-DO finish bellow function
             //startActivities(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-        }
-    }
-
-    private LocationManager lm;
-    private String bestProvider = LocationManager.GPS_PROVIDER;
-    private void locationInitial(){
-        lm = (LocationManager) getSystemService(LOCATION_SERVICE);
-        Criteria criteria = new Criteria();
-        bestProvider = lm.getBestProvider(criteria, true);
-        Location location = lm.getLastKnownLocation(bestProvider);
-        getLocation(location);
-    }
-
-
-    private boolean flag_firstFix = true;
-    final static double WEIGHT = 0.2;
-    double lastLatitude,lastLongitude, currLatitude, currLongitude;
-    private void getLocation(Location location){
-
-        if(location != null){
-
-            currLatitude = location.getLatitude();
-            currLongitude = location.getLongitude();
-
-            if(flag_firstFix){ //First position fix
-                lastLatitude = currLatitude;
-                lastLongitude = currLongitude;
-
-                flag_firstFix = false;
-            }else{ //Use running average to reduce the error
-                lastLatitude = lastLatitude * WEIGHT + (1-WEIGHT) * currLatitude;
-                lastLongitude = lastLongitude * WEIGHT + (1-WEIGHT) * currLongitude;
-            }
-
-            //show position fix on the TextView
-            latitudeText.setText(Double.toString(lastLatitude));
-            longitudeText.setText(Double.toString(lastLongitude));
-
-            //Get the current time
-            Calendar rightNow = Calendar.getInstance();
-
-            //Get the time elapse from the device boot
-            String ElapseFromBootInSec = Long.toString(location.getElapsedRealtimeNanos() / 1000000000);
-            timeText.setText(ElapseFromBootInSec
-                    + "(" + rightNow.getTime().toString() + ")");
-
-            //Save position fix in the SQLite database
-            dbHelper.create(ElapseFromBootInSec, Double.toString(lastLatitude), Double.toString(lastLongitude));
-
         }
     }
 
@@ -201,138 +161,6 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         }
     };
 
-    static final private String DEVICEID = "p000";
-    private String createFixData() {
-        String formattedData;
-        int decLat = (int) lastLatitude;
-        double minLat = new BigDecimal( (lastLatitude - decLat) * 60 ).setScale(4, BigDecimal.ROUND_HALF_UP).doubleValue(); //minute part of latitude
-        int decLng = (int) lastLongitude;
-        double minLng = new BigDecimal( (lastLongitude - decLng) * 60 ).setScale(4, BigDecimal.ROUND_HALF_UP).doubleValue(); //minute part of longitude
-
-        DecimalFormat zeroPadding = new DecimalFormat("#.0000");
-
-        String lat = String.valueOf(decLat) + String.valueOf( zeroPadding.format(minLat));
-        String lng = String.valueOf(decLng) + String.valueOf(zeroPadding.format(minLng));
-
-        //Now the format of lat and longitude will be
-        //ddmm.mmmmN and dddmm.mmmmE
-        lat += (decLat >= 0)? 'N' : 'S';
-        lng += (decLng >= 0)? 'E' : 'W';
-
-        //produce the format of current date and UTC time which match the GPS module produced.
-        Calendar cal = Calendar.getInstance();
-        SimpleDateFormat date = new SimpleDateFormat("ddMMyy");
-        SimpleDateFormat time = new SimpleDateFormat("HHmmss", Locale.UK); //24hr format
-        time.setTimeZone(TimeZone.getTimeZone("GMT"));
-        
-        formattedData = DEVICEID + ", "
-                + date.format(cal.getTime()) + ", "
-                + time.format(cal.getTime()) + ".000, "
-                + lat + ", "
-                + lng;
-
-        Log.v("FIX", formattedData);
-
-        return formattedData;
-    }
-
-    private String doPOST(String postData) {
-        HttpURLConnection httpConn = null;
-        try {
-            Log.v("POST", "do post!");
-            //Get the data from Views for sending to server
-//            String urlMalteseAnn = urlEditText.getText().toString();
-//            String postName = nameEditText.getText().toString();
-//            String postData = valueEditText.getText().toString();
-            String urlMalteseAnn = "http://140.116.156.227:8888/rxfix";
-            String postName = "fix";
-            String postDataFormat = "p000, 300315, 065812.000, 2259.8259N, 12013.3452E";
-
-            if (postDataFormat.length() == postData.length())
-                Log.v("FIX", "equal!");
-            else
-                Log.v("FIX", "not equal!");
-
-            URL url = new URL(urlMalteseAnn);
-            httpConn = (HttpURLConnection) url.openConnection();
-            httpConn.setDoInput(true);
-            httpConn.setDoOutput(true);
-            httpConn.setRequestMethod("POST");
-            httpConn.setRequestProperty("Content-type", "application/x-www-form-urlencoded");
-            httpConn.setUseCaches(false);
-            httpConn.connect();
-
-            DataOutputStream dos = new DataOutputStream(httpConn.getOutputStream());
-
-            String postContent = URLEncoder.encode(postName, "UTF-8")
-                    + "="
-                    + URLEncoder.encode(postData, "UTF-8");
-
-            dos.write(postContent.getBytes());
-            dos.flush();
-            dos.close();// finish the post request
-
-            //Check the Http Code is 200(HTTP_OK) or NOT
-            int respondCode = httpConn.getResponseCode();
-            if(respondCode == HttpURLConnection.HTTP_OK) {
-                Log.v("POST", "send <" + postName + ", " + postData + "> to " + urlMalteseAnn);
-                Log.v("POST", "response OK!");
-
-            }else {
-                Log.v("POST", "response fail!");
-            }
-
-            //Read the response from the server
-            Reader reader = new InputStreamReader(httpConn.getInputStream(), "UTF-8");
-            char[] buffer = new char[200];
-            int cnt;
-            cnt = reader.read(buffer);
-            //pick out used bytes in buffer
-            String bufferStr = new String(buffer, 0, cnt);
-
-            Log.v("POST", "response msg" + "(" + (cnt) + " bytes)" + ": " + bufferStr);
-            return bufferStr;
-
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (httpConn != null) {
-                httpConn.disconnect();
-            }
-        }
-        return new String("Fail, maybe no Internet");
-    }
-
-    private Thread tDoHttpPOST;
-    private boolean tPOST_flag = true;
-    private boolean locationChange = true;
-    private Runnable runDoHttpPOST = new Runnable() {
-        @Override
-        public void run() {
-            //set the thread priority lower than UI thread
-            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
-
-            while(tPOST_flag) {
-                if (locationChange) {
-                    locationChange = false;
-                    Bundle bd = new Bundle();
-                    String resp;
-                    Message msg = new Message();
-
-                    resp = doPOST( createFixData() );
-
-                    //Send the Http POST response to the UI Thread
-                    bd.putString("RESP", resp);
-                    msg.what = POST_RESP;
-                    msg.setData(bd);
-                    UI_Handler.sendMessage(msg);
-                }
-            }
-        }
-    };
-
     private static final int SHARP_POINT = 0;
     private static final int POST_RESP = 1;
     //UI(main) Thread handler
@@ -385,7 +213,19 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         baseLinearLayout = (LinearLayout) findViewById(R.id.baseLinearLayout);
 
         debugText = (TextView)findViewById(R.id.txtView_Debug);
+
+        startButton = (Button) findViewById(R.id.startButton);
+        stopButton = (Button) findViewById(R.id.stopButton);
+
+        startButton.setOnClickListener(this);
+        stopButton.setOnClickListener(this);
+
+        startButton.setClickable(false);
+        stopButton.setClickable(false);
     }
+
+
+    BroadcastReceiver receiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -404,25 +244,44 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         tWD_Flag = true;
         //tWanderingDetection.start();
 
-        tDoHttpPOST = new Thread(runDoHttpPOST);
-        tPOST_flag = true;
-        tDoHttpPOST.start();
+        //receive message from LocationService and show them on UI
+        receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Bundle meg = intent.getBundleExtra(LocationService.LOCATION_MESSAGE);
+                latitudeText.setText(meg.getString(LocationService.INTENT_LATITUDE));
+                longitudeText.setText(meg.getString(LocationService.INTENT_LONGITUDE));
+                timeText.setText(meg.getString(LocationService.INTENT_CURRENT_TIME));
+                String resp = meg.getString(LocationService.INTENT_HTTP_RESP);
+                debugText.setText(debugText.getText() + "\n" + resp + "\n");
+            }
+        };
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d("MainActivity", "onStart executed");
+        LocalBroadcastManager.getInstance(this).registerReceiver(receiver,
+                new IntentFilter(LocationService.LOCATION_RESULT)
+        );
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if(getService){
-            lm.requestLocationUpdates(bestProvider, 1000, 2, this);
-        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if(getService){
-            lm.removeUpdates(this);
-        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
     }
 
     @Override
@@ -433,29 +292,24 @@ public class MainActivity extends ActionBarActivity implements LocationListener{
         tWanderingDetection = null;
 
         dbHelper.close();
-
-        tPOST_flag = stopThread(tDoHttpPOST);
-        tDoHttpPOST = null;
     }
 
     @Override
-    public void onLocationChanged(Location location) {
-        getLocation(location);
-        locationChange = true;
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.startButton:
+                stopButton.setClickable(true);
+                startButton.setClickable(false);
+                Intent startIntent = new Intent(this, LocationService.class);
+                startService(startIntent);
+                break;
+            case R.id.stopButton:
+                stopButton.setClickable(false);
+                startButton.setClickable(true);
+                Intent stopIntent = new Intent(this, LocationService.class);
+                stopService(stopIntent);
+                break;
+            default:break;
+        }
     }
 }
