@@ -1,5 +1,6 @@
 package ncku.pplab.pjay.locationexample;
 
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.location.Criteria;
@@ -8,7 +9,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Message;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -213,6 +214,7 @@ public class LocationService extends Service implements LocationListener {
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
 
             while(tPOST_flag) {
+                Log.d("THREAD", "thread runDoHttpPOST working!!");
                 if (locationChange) {
                     locationChange = false;
                     String resp;
@@ -236,6 +238,12 @@ public class LocationService extends Service implements LocationListener {
 
                     /* ----------------------------------------------------------- */
                 }
+
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
     };
@@ -254,6 +262,23 @@ public class LocationService extends Service implements LocationListener {
         return false;
     }
 
+
+    private void setServiceForeground() {
+
+        NotificationCompat.Builder builder =
+                new NotificationCompat.Builder(this);
+
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent =
+                PendingIntent.getActivity(this, 0, notificationIntent, 0);
+
+        builder.setContentIntent(pendingIntent)
+                .setContentTitle("Tracking...")
+                .setSmallIcon(R.drawable.ic_launcher);
+
+        startForeground(1, builder.build());
+    }
+
     // ------- Life Cycle method --------------
 
     @Override
@@ -266,6 +291,8 @@ public class LocationService extends Service implements LocationListener {
         tDoHttpPOST = new Thread(runDoHttpPOST);
         tPOST_flag = true;
         tDoHttpPOST.start();
+
+        setServiceForeground();
     }
 
     @Override
@@ -292,6 +319,9 @@ public class LocationService extends Service implements LocationListener {
     public IBinder onBind(Intent intent) {
         return null;
     }
+
+
+    /* ---- LocationListener's methods ---- */
 
     @Override
     public void onLocationChanged(Location location) {

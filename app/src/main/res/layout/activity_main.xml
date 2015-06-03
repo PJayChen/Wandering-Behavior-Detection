@@ -62,10 +62,30 @@
         android:text="Calculating..."
         android:id="@+id/txtView_sp" />
 
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:weightSum="1">
+
+        <Button
+            android:layout_width="128dp"
+            android:layout_height="wrap_content"
+            android:text="Start Tracking"
+            android:id="@+id/startButton" />
+
+        <Button
+            android:layout_width="115dp"
+            android:layout_height="wrap_content"
+            android:text="Stop Tracking"
+            android:id="@+id/stopButton" />
+    </LinearLayout>
+
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/scrollView">
+        android:layout_height="100dp"
+        android:id="@+id/scrollView"
+        android:fillViewport="false">
 
         <TextView
             android:layout_width="wrap_content"
